@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta http-equiv="Cache-Control" content="no-siteapp" />
+    <meta name="renderer" content="webkit" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <meta name="keywords" content="Editor.md,editor,Markdown Editor,Markdown" />
+    <meta name="description" content="Skills Network Author IDE" />
+    <title>Skills Network Editor</title>
+    <link rel="stylesheet" href="editormd/examples/css/style.css?version=2.0.10" />
+    <link rel="stylesheet" href="editormd/css/editormd.css?version=2.0.10" />
+    <link rel="stylesheet" href="public/css/custom.css?version=2.0.10" />
+    <link rel="shortcut icon" href="public/images/SN_favicon.png" type="image/x-icon" />
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css"
+        integrity="sha384-B0vP5xmATw1+K9KRQjQERJvTumQW0nPEzvF6L/Z6nronJ3oUOFUFpCjEUQouq2+l" crossorigin="anonymous">
+    <script src="public/js/comms.js?version=2.0.10"></script>
+    <script src="//unpkg.com/alpinejs"></script>
+</head>
+
+<body>
+    <div id="layout">
+    <div id="test-editormd">
+        <textarea style="display:none;"># Connecting to MongoDB from Flask
+**Estimated time needed:** 30 minutes
+
+In the last video, you learned how to connect and query MongoDB from Python. Since Flask is written in Python, it is easy to use MongoDB with Flask using the &#x60;PyMongo&#x60; module.
+
+## Objectives
+In this reading, you will learn how to:
+1. Initiate a PyMongo client in Flask
+1. Connect with MongoDB database
+1. Work with database and collections in MongoDB from Flask
+1. Return appropriate HTTP status from Flask routes
+
+
+## Directory structure
+Let\&#x27;s look at a sample directory structure to see how you can set up PyMongo to work with a database in Flask.
+
+&#x60;&#x60;&#x60;
+.
+├── __init__.py
+├── app.py
+├── db.py
+└── venv
+&#x60;&#x60;&#x60;
+
+1. &#x60;__ini__.py&#x60;: empty file that initializes a python module
+1. &#x60;app.py&#x60;: main application that contains the Flask routes
+1. &#x60;db.py&#x60;: python file to initialize the database
+1. &#x60;venv&#x60;: python virtual environment
+
+## Initiate MongoDB client from Flask
+In this exercise, you will initiate a MongoDB client. Assume you have MongoDB running on the localhost and can connect with the username, &#x60;mongouser&#x60;, and password, &#x60;password&#x60;. The following command will initiate a client using these credentials:
+
+&#x60;&#x60;&#x60;
+client &#x3D; MongoClient(&#x27;mongodb://%s:%s@127.0.0.1&#x27; % (&#x27;mongouser&#x27;, &#x27;password&#x27;))
+&#x60;&#x60;&#x60;
+
+## Populate the database for the first time
+You will create a &#x60;PyMongo&#x60; client in the &#x60;db.py&#x60; file. This can then be imported in the main app file.
+
+&#x60;&#x60;&#x60;
+from pymongo import MongoClient
+&#x60;&#x60;&#x60;
+Next, the following function initializes the &#x60;MongoClient&#x60; client and inserts three Todos in the &#x60;todo&#x60; collection that belongs to the &#x60;tododb&#x60; database.
+&#x60;&#x60;&#x60;
+def init_db():
+    client &#x3D; MongoClient(&#x27;mongodb://%s:%s@127.0.0.1&#x27; % (&#x27;mongouser&#x27;, &#x27;password&#x27;))
+    client.tododb.todo.drop()
+    client.tododb.todo.insert_many(
+        [
+            {&quot;priority&quot;: &quot;high&quot;,
+            &quot;title&quot;: &quot;Get milk&quot;},
+            {&quot;priority&quot;: &quot;medium&quot;,
+            &quot;title&quot;: &quot;Get gasoline&quot;},
+            {&quot;priority&quot;: &quot;low&quot;,
+            &quot;title&quot;: &quot;Water plants&quot;}
+        ]
+    )
+    return client
+&#x60;&#x60;&#x60;
+1. &#x60;Line1&#x60;: first, create a new PyMongo client using the URL of the form &#x60;mongodb://%s:%s@127.0.0.1&#x60;. You replace the username and password. This secret information should not be added to the code. In this learning activity, the information is included in the code for easy understanding.
+1. &#x60;Line 2&#x60;: creates a connection to MongoDB, as explained above.
+1. &#x60;Line 3&#x60;: drops the &#x60;todo&#x60; collection from the &#x60;tododb&#x60; database. This means that every time the Flask server is restarted, you will get a fresh copy of the database in this sample application.
+1. &#x60;Line 4&#x60;: inserts three todos into the collection.
+
+## Interact with MongoDB database
+You will now use the &#x60;db.py&#x60; file in the Flask application. Let&#x27;s look at the code:
+&#x60;&#x60;&#x60;
+app &#x3D; Flask(__name__)
+
+from . import db
+client &#x3D; db.init_db()
+&#x60;&#x60;&#x60;
+1. &#x60;Line 1&#x60;: initiates a new Flask application.
+1. &#x60;Line 3&#x60;: imports the db file from the current &#x60;.&#x60; module.
+1. &#x60;Line 4&#x60;: initiates and populates the database using the &#x60;db.init_db()&#x60; method.
+
+
+## Return JSON data and HTTP status
+We can now start writing some routes. First route is for the URL &#x60;/todos&#x60;, and it will simply return all the documents in the collection.
+&#x60;&#x60;&#x60;
+@app.route(&quot;/todos&quot;)
+def index():
+    result &#x3D; client.tododb.todo.find({})
+    return json_util.dumps(list(result)), 200
+&#x60;&#x60;&#x60;
+1. &#x60;Line 1&#x60;: declares the &#x60;/todos&#x60; URL using the &#x60;@app.route&#x60; decorator.
+1. &#x60;Line 2&#x60;: creates the method for handling this route.
+1. &#x60;Line 3&#x60;: uses the &#x60;find()&#x60; method in &#x60;PyMongo&#x60; to retrieve all the documents in the &#x60;todo&#x60; collection from the &#x60;tododb&#x60; database.
+1. &#x60;Line 4&#x60;: converts the &#x60;bson&#x60; structure returned by month into &#x60;json&#x60; using the &#x60;json_util&#x60; module. This module provides methods to explicitly convert BSON objects to JSON and vice versa.
+1. &#x60;Line 4&#x60;: returns the JSON list with an HTTP code of 200.
+
+Let\&#x27;s look at the case where you need to return a different HTTP code. The route is for the URL &#x60;/todos/&lt;priority&gt;&#x60; and should return all todos with the given priority. The priority can be **low**, **medium**, or **high**. If the client sends a GET request to &#x60;/todos/high&#x60;, the method will return all items with a priority of &#x60;high&#x60;. If the client sends a priority other than &#x60;high&#x60;, &#x60;medium&#x60;, or &#x60;low&#x60;, the code will send an &#x60;HTTP 404 NOT FOUND&#x60; back.
+&#x60;&#x60;&#x60;
+@app.route(&quot;/todos/&lt;priority&gt;&quot;)
+def get_by_priority_better(priority):
+    result &#x3D; client.tododb.todo.find({&quot;priority&quot;: priority})
+    result_list &#x3D; list(result)
+    if not result or len(result_list) &lt; 1:
+        return json_util.dumps(result_list), 404
+
+    return json_util.dumps(result_list), 200
+&#x60;&#x60;&#x60;
+1. &#x60;Line 1&#x60;: declares the &#x60;/todos/&lt;priority&gt;&#x60; URL using the &#x60;@app.route&#x60; decorator.
+1. &#x60;Line 2&#x60;: creates the method for handling this route. The method takes the priority as an input. Flask automatically extracts this from the URL provided in the decorator.
+1. &#x60;Line 3&#x60;: uses the &#x60;find()&#x60; method similar to the code above, but filters for todos with a priority of &#x60;priority&#x60; variable passed in by the client in the URL itself.
+1. &#x60;Line 4&#x60;: the &#x60;find&#x60; method returns a cursor. This line converts the cursor into a list. 
+1. &#x60;Line 5&#x60;: checks if the list is empty.If so, the code returns a 404 HTTP status with the empty list. 
+1. &#x60;Line 8&#x60;: returns the list back to the client with an HTTP status of 200. Similar to the code above, you use &#x60;json_util&#x60; module to convert the &#x60;bson&#x60; structure into &#x60;json&#x60;.
+
+An important point to remember in the code above is that once the &#x60;cursor&#x60; object returned from the &#x60;find&#x60; method is converted to a Python &#x60;list&#x60;, the cursor becomes empty. You now have to work with the &#x60;list&#x60; object moving forward, as you don\&#x27;t access the items in the cursor anymore.
+
+Now that you know how to interact with the &#x60;MongoDB&#x60; database in &#x60;Flask&#x60; using &#x60;PyMongo&#x60; for two endpoints, you can create &#x60;PUT&#x60;, &#x60;POST&#x60;, and &#x60;DELETE&#x60; endpoints in the capstone project on your own.
+
+## Testing
+Let&#x27;s test the above two endpoints with the curl command.
+
+1. We can run the application using the following command:
+	&#x60;&#x60;&#x60;
+	flask run --reload --debugger
+	&#x60;&#x60;&#x60;
+1. Test the &#x60;/todos&#x60; endpoint:
+	&#x60;&#x60;&#x60;
+	curl -i -w &#x27;\n&#x27; localhost:5000/todos
+	&#x60;&#x60;&#x60;
+	The result will look like:
+	&#x60;&#x60;&#x60;
+	HTTP/1.1 200 OK
+	Server: Werkzeug/2.2.2 Python/3.7.16
+	Date: Fri, 10 Feb 2023 04:18:31 GMT
+	Content-Type: text/html; charset&#x3D;utf-8
+	Content-Length: 273
+	Connection: close
+
+	[{&quot;_id&quot;: {&quot;$oid&quot;: &quot;63e5c594f32480ef62a901ab&quot;}, &quot;priority&quot;: &quot;high&quot;, &quot;title&quot;: &quot;Get milk&quot;}, {&quot;_id&quot;: {&quot;$oid&quot;: &quot;63e5c594f32480ef62a901ac&quot;}, &quot;priority&quot;: &quot;medium&quot;, &quot;title&quot;: &quot;Get gasoline&quot;}, {&quot;_id&quot;: {&quot;$oid&quot;: &quot;63e5c594f32480ef62a901ad&quot;}, &quot;priority&quot;: &quot;low&quot;, &quot;title&quot;: &quot;Water plants&quot;}]
+	&#x60;&#x60;&#x60;
+	Formatted JSON output:
+	&#x60;&#x60;&#x60;
+	[
+	  {
+		&quot;_id&quot;: {
+		  &quot;$oid&quot;: &quot;63e5c88077d86b4ad7dfa072&quot;
+		},
+		&quot;priority&quot;: &quot;high&quot;,
+		&quot;title&quot;: &quot;Get milk&quot;
+	  },
+	  {
+		&quot;_id&quot;: {
+		  &quot;$oid&quot;: &quot;63e5c88077d86b4ad7dfa073&quot;
+		},
+		&quot;priority&quot;: &quot;medium&quot;,
+		&quot;title&quot;: &quot;Get gasoline&quot;
+	  },
+	  {
+		&quot;_id&quot;: {
+		  &quot;$oid&quot;: &quot;63e5c88077d86b4ad7dfa074&quot;
+		},
+		&quot;priority&quot;: &quot;low&quot;,
+		&quot;title&quot;: &quot;Water plants&quot;
+	  }
+	]
+	&#x60;&#x60;&#x60;
+1. Test the &#x60;/todos/high&#x60; endpoint:
+	&#x60;&#x60;&#x60;
+	curl -i -w &#x27;\n&#x27; localhost:5000/todos/high
+	&#x60;&#x60;&#x60;
+	The command will return:
+	&#x60;&#x60;&#x60;
+	HTTP/1.1 200 OK
+	Server: Werkzeug/2.2.2 Python/3.7.16
+	Date: Fri, 10 Feb 2023 04:19:19 GMT
+	Content-Type: text/html; charset&#x3D;utf-8
+	Content-Length: 88
+	Connection: close
+
+	[{&quot;_id&quot;: {&quot;$oid&quot;: &quot;63e5c594f32480ef62a901ab&quot;}, &quot;priority&quot;: &quot;high&quot;, &quot;title&quot;: &quot;Get milk&quot;}]
+	&#x60;&#x60;&#x60;
+	Formatted JSON output:
+	&#x60;&#x60;&#x60;
+	[
+	  {
+		&quot;_id&quot;: {
+		  &quot;$oid&quot;: &quot;63e5c88077d86b4ad7dfa072&quot;
+		},
+		&quot;priority&quot;: &quot;high&quot;,
+		&quot;title&quot;: &quot;Get milk&quot;
+	  }
+	]
+	&#x60;&#x60;&#x60;
+1. Test the &#x60;/todos/low&#x60; endpoint:
+	&#x60;&#x60;&#x60;
+		HTTP/1.1 200 OK
+	Server: Werkzeug/2.2.2 Python/3.7.16
+	Date: Fri, 10 Feb 2023 04:21:07 GMT
+	Content-Type: text/html; charset&#x3D;utf-8
+	Content-Length: 91
+	Connection: close
+
+	[{&quot;_id&quot;: {&quot;$oid&quot;: &quot;63e5c62b3d484ba15fb5184e&quot;}, &quot;priority&quot;: &quot;low&quot;, &quot;title&quot;: &quot;Water plants&quot;}]
+	&#x60;&#x60;&#x60;
+	Formatted JSON output:
+	&#x60;&#x60;&#x60;
+	[
+	  {
+		&quot;_id&quot;: {
+		  &quot;$oid&quot;: &quot;63e5c88077d86b4ad7dfa074&quot;
+		},
+		&quot;priority&quot;: &quot;low&quot;,
+		&quot;title&quot;: &quot;Water plants&quot;
+	  }
+	]
+	&#x60;&#x60;&#x60;
+
+## Next Steps
+You now know how to use &#x60;PyMongo&#x60; in a &#x60;Flask&#x60; application to interact with &#x60;MongoDB&#x60; database server. You can now continue to the next module, where you will write the second service for the capstone project and use the skills you learned in this reading.
+
+## Author(s)
+CF
+
+## Changelog
+| Date | Version | Changed by | Change Description |
+|------|--------|--------|---------|
+| 2023-02-09 | 0.1 | CF | Initial version created |
+| 2023-02-10 | 0.2 | SH | QA pass with edits |
+| 2023-02-16 | 0.3 | SH | QA pass post content add |
+</textarea>
+    </div>
+</div>
+
+<script src="editormd/examples/js/jquery.min.js"></script>
+<script src="editormd/editormd.js?version=2.0.10"></script>
+
+<script src="editormd/languages/en.js"></script>
+
+<script src="public/js/common.js?version=2.0.10"></script>
+<script src="public/js/render.js?version=2.0.10"></script>
+
+<script type="text/javascript">
+
+    $(function () {
+        let token = findGetParameter("token");
+
+        let LABS_BASE_URL = 'https://labs.cognitiveclass.ai';
+        let asset_library_prefix_url = 'https://cf-courses-data.s3.us.cloud-object-storage.appdomain.cloud/IBM-CD0320EN-SkillsNetwork';
+        let tool_type = "instructional-lab";
+        let projectId = "";
+        let filename = `labs/module2/mongo-with-flask.md`;
+        try {
+            let projectIdStored = false
+            let project = JSON.parse(localStorage.getItem("sn-project"))
+            if (project != null) {
+                if (projectId in project) {
+                    projectIdStored = true
+                    if (!(filename in project[projectId])) {
+                        project[projectId][filename] = {}
+                    }
+                }
+            }
+            if (!projectIdStored) {
+                project = {}
+                project[projectId] = {}
+                project[projectId][filename] = {}
+            }
+            window.localStorage.setItem("sn-project", JSON.stringify(project))
+        }
+        catch (e) {
+            console.log(e)
+        }
+
+        var authorEditor = editormd("test-editormd", "2.0.10", {
+
+            tool_type,
+            projectId,
+            filename,
+
+            width: "100%",
+            //height: "100%",
+            autoHeight: true,
+
+            // mode: 'markdown',
+
+            theme: "dark",
+            previewTheme: tool_type == "instructional-lab" ? "light" : "dark",
+            editorTheme: "pastel-on-dark",
+
+            readOnly: true,
+
+            pluginPath: 'plugins/',
+
+
+            syncScrolling: false,
+
+            htmlDecode: 'img',
+
+            path: 'editormd/lib/',
+            watch: false,
+
+            // markdown,
+            toolbar: false,
+
+            atLink: false,
+            toc: true,
+            tocm: true,
+            tocDropdown: false,
+            tocTitle: "Table of Contents For your lab!",
+
+            tex: true,
+            flowChart: true,
+            sequenceDiagram: true,
+            codeFold: true, // Doesn't do anything?
+            taskList: true,
+            emoji: true,
+
+            saveMarkdownToTextarea: true,
+
+            onresize: function () {
+                $("html,body").css("overflow", "hidden");
+
+                this.preview.css({
+                    width: $(window).width(),
+                    height: $(window).height()
+                })
+
+                adjustProgressBarWidth()
+            },
+            fixCodeBlocks: function () {
+                adjustCodeBlocks(this);
+            },
+            onload: function () {
+                $("[type=\"file\"]").bind("change", function () {
+                    alert($(this).val());
+                    authorEditor.cm.replaceSelection($(this).val());
+                    console.log($(this).val(), authorEditor);
+                });
+
+                this.fullscreen();
+                this.previewing();
+
+                setPreviewWatchToolbar(this);
+
+                if (tool_type != "instructional-lab") {
+                    fixCustomPlugins(this);
+                }
+                setAssetLibraryPrefixUrl(asset_library_prefix_url);
+                //comms with UI
+                setParentUrl(LABS_BASE_URL);
+                establishCommsWithUI(this);
+                //let the UI know that the author-ide has loaded
+                requestToUI({ type: "frame_loaded" });
+            }
+        });
+    });
+</script>
+</body>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-Piv4xVNRyMGpqkS2by6br4gNJ7DXjqk09RmUpJ8jgGtD7zP9yug3goQfGII0yAns" crossorigin="anonymous">
+    </script>
+
+</html>
