@@ -1,4 +1,4 @@
-# IBMBackEnd
+# IBMBACKEND
 
 ## IBM Back-End Development Professional Certificate (11 course series)
 
